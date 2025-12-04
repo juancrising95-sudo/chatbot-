@@ -1,13 +1,30 @@
 
+# app.py
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os, json, smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# --- Carga de variables de entorno (Render y local) ---
+from dotenv import load_dotenv
+
+# Render monta el archivo secreto con el nombre que pusiste (ej. "env") en:
+SECRET_FILE_PATH = '/etc/secrets/env'
+
+if os.path.exists(SECRET_FILE_PATH):
+    # En Render: carga el archivo secreto
+    load_dotenv(SECRET_FILE_PATH)
+else:
+    # En tu PC local: carga un .env si existe en la raíz del proyecto
+    load_dotenv()
+# --- Fin carga de entorno ---
+
+# Instancia Flask y CORS
 app = Flask(__name__)
 CORS(app)  # permite llamadas desde Netlify
 
+# Rutas base de datos de empresas (JSON)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EMPRESAS_DIR = os.path.join(BASE_DIR, "empresas")
 
@@ -17,6 +34,7 @@ def cargar_json(ruta):
             return json.load(f)
     return None
 
+# --------- RUTAS DE CONFIG / FAQ / PROMOS ---------
 @app.route("/empresa/<empresa_id>/config", methods=["GET"])
 def get_config(empresa_id):
     ruta = os.path.join(EMPRESAS_DIR, empresa_id, "config.json")
@@ -41,7 +59,7 @@ def get_promos(empresa_id):
         return jsonify({"error": "Promos no encontrado"}), 404
     return jsonify(data)
 
-# Genera link de pago simple: linkPagoBase + monto
+# --------- PAGO: genera link simple (linkPagoBase + monto) ---------
 @app.route("/pago/<empresa_id>/qr", methods=["POST"])
 def generar_link_qr(empresa_id):
     payload = request.json or {}
@@ -55,7 +73,7 @@ def generar_link_qr(empresa_id):
     link = f"{base}{monto}"
     return jsonify({"linkPago": link})
 
-# Envía correo al dueño con los datos del pedido
+# --------- NOTIFICACIÓN POR CORREO AL DUEÑO ---------
 @app.route("/notify/<empresa_id>", methods=["POST"])
 def notify_owner(empresa_id):
     datos = request.json or {}
@@ -67,7 +85,7 @@ def notify_owner(empresa_id):
     if not correo_destino:
         return jsonify({"error": "Correo de destino no configurado"}), 400
 
-    # Variables de entorno (configúralas en Render)
+    # Variables de entorno (configúralas en Render o .env local)
     email_user = os.getenv("EMAIL_USER")
     email_pass = os.getenv("EMAIL_PASS")
 
@@ -98,12 +116,22 @@ def notify_owner(empresa_id):
 
         return jsonify({"status": "Notificación enviada ✅"})
     except Exception as e:
+        # Log minimal para diagnóstico
+        print(f"[ERROR notify_owner] {e}")
         return jsonify({"error": str(e)}), 500
+
+# --------- SALUD Y RAÍZ ---------
+@app.route("/health", methods=["GET"])
+def health():
+    return "OK", 200
 
 @app.route("/", methods=["GET"])
 def root():
-    return jsonify({"status": "Backend OK"})
+    # Muestra si EMAIL_USER está configurado (útil para validar secrets)
+    email_config = bool(os.getenv("EMAIL_USER"))
+    return jsonify({"status": "Backend OK", "email_configurado": email_config}), 200
 
+# --------- MAIN LOCAL (en Render se usa gunicorn) ---------
 if __name__ == "__main__":
     # Para pruebas locales
     app.run(host="127.0.0.1", port=5000, debug=True)
