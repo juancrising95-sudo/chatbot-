@@ -22,7 +22,7 @@ else:
 
 # Instancia Flask y CORS
 app = Flask(__name__)
-CORS(app)  # permite llamadas desde Netlify
+CORS(app)  # permite llamadas desde Netlify (luego podemos restringir)
 
 # Rutas base de datos de empresas (JSON)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,6 +35,7 @@ def cargar_json(ruta):
     return None
 
 # --------- RUTAS DE CONFIG / FAQ / PROMOS ---------
+# 🔧 Corregido: <empresa_id> sin entidades HTML
 @app.route("/empresa/<empresa_id>/config", methods=["GET"])
 def get_config(empresa_id):
     ruta = os.path.join(EMPRESAS_DIR, empresa_id, "config.json")
@@ -120,6 +121,21 @@ def notify_owner(empresa_id):
         print(f"[ERROR notify_owner] {e}")
         return jsonify({"error": str(e)}), 500
 
+# --------- CHAT: eco mínimo para probar conexión ---------
+@app.route("/chat", methods=["POST"])
+def chat():
+    try:
+        payload = request.get_json(force=True) or {}
+        message = (payload.get("message") or "").strip()
+        if not message:
+            return jsonify({"error": "Mensaje vacío"}), 400
+
+        # Respuesta de prueba (eco)
+        return jsonify({"reply": f"Recibí: {message}"}), 200
+    except Exception as e:
+        print(f"[ERROR /chat] {e}")
+        return jsonify({"error": "Error interno", "detail": str(e)}), 500
+
 # --------- SALUD Y RAÍZ ---------
 @app.route("/health", methods=["GET"])
 def health():
@@ -129,7 +145,7 @@ def health():
 def root():
     # Muestra si EMAIL_USER está configurado (útil para validar secrets)
     email_config = bool(os.getenv("EMAIL_USER"))
-    return jsonify({"status": "Backend OK", "email_configurado": email_config}), 200
+    return jsonify({"status": "Backend correcto", "email_configurado": email_config}), 200
 
 # --------- MAIN LOCAL (en Render se usa gunicorn) ---------
 if __name__ == "__main__":
