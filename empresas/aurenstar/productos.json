@@ -1,0 +1,8 @@
+
+{
+  "items": [
+    { "nombre": "Curso Inicial", "categoria": "Formación", "descripcion": "Fundamentos y prácticas iniciales." },
+    { "nombre": "Curso Premium", "categoria": "Formación", "descripcion": "Producción estilo cinematográfico." },
+    { "nombre": "Mentoría 1:1", "categoria": "Mentoría", "descripcion": "Sesiones personalizadas." }
+  ]
+}

@@ -1,0 +1,8 @@
+
+{
+  items [
+    { nombre Curso Inicial, precio 120, moneda Bs. },
+    { nombre Curso Premium, precio 250, moneda Bs. },
+    { nombre Mentoría 11, precio 180, moneda Bs. }
+  ]
+}
